@@ -1,4 +1,4 @@
-module github.com/cristianmagana/go-service/clientset
+module github.com/cristianmagana/go-service/pkg/clientset
 
 go 1.21.4
 
