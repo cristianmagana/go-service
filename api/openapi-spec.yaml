@@ -1,0 +1,258 @@
+openapi: 3.0.3
+info:
+  description: Docker self-service API for container management
+  version: "1.0.0"
+  title: Docker Self-Service
+  license:
+    name: Apache 2.0
+    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+servers: 
+  - url: https://dev.cristianmagana.dev
+    description: Development Server
+  - url: https://uat.cristianmagana.dev
+    description: UAT Server
+  - url: https://prod.cristianmagana.dev
+    description: Prod Server    
+paths: 
+  /v1/repo/{region}:
+    get: 
+      summary: List repositories in a region
+      description: List of repositories within a region.
+      tags:
+        - Repo
+      operationId: listRepositoriesV1
+      parameters:
+        - $ref: "#/components/parameters/region"
+      responses:
+        '200': 
+          description: List of ECR repos in a region
+          content: 
+            application/json:
+              schema: 
+                $ref: "#/components/schemas/RepoResponse"
+        '204':
+          description: No repositories found in region
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+  /v1/repo/{region}/{repoName}:
+    get:
+      summary: Get a Repository 
+      description: Get a repository by repoName and region
+      tags:
+        - Repo
+      operationId: getRepositoryV1
+      parameters:
+        - $ref: "#/components/parameters/region"
+        - $ref: "#/components/parameters/repoName"
+      responses:
+        '200': 
+          description: Get information about a repository
+          content: 
+            application/json:
+              schema: 
+                $ref: "#/components/schemas/Repo"
+  /v1/image/{region}/{repoName}:
+    get:
+      summary: List of images in a repository
+      description: List of images in a repository
+      tags:
+        - Image
+      operationId: listImagesV1
+      parameters:
+        - $ref: "#/components/parameters/region"
+        - $ref: "#/components/parameters/repoName"
+      responses:
+        '200': 
+          description: List of ECR repos in a region
+          content: 
+            application/json:
+              schema: 
+                $ref: "#/components/schemas/ImageResponse"
+        '204':
+          description: No images found in repository
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+  /v1/image/{region}/{repoName}/{imageTag}:
+    get:
+      summary: Get an image by tag
+      description: Get an image by tag
+      tags:
+        - Image
+      operationId: getImageV1
+      parameters:
+        - $ref: "#/components/parameters/region"
+        - $ref: "#/components/parameters/repoName"
+        - name: imageTag
+          in: path
+          description: Image Tag
+          required: true
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 50
+      responses:
+        '200': 
+          description: Get information about an image
+          content: 
+            application/json:
+              schema: 
+                $ref: "#/components/schemas/Image"
+        '204':
+          description: No images found in repository
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+    post:
+      summary: Update image to latest 
+      description: Update image to latest
+      tags:
+        - Image
+      operationId: updateImageV1
+      parameters:
+        - $ref: "#/components/parameters/region"
+        - $ref: "#/components/parameters/repoName"
+        - $ref: "#/components/parameters/imageTag"
+      responses:
+        '204':
+          description: ImageTag updated to latest
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not Found
+
+components:
+  parameters:
+    region:
+      name: region
+      in: path
+      description: Region
+      required: true
+      schema:
+        default: us-east-1
+        type: string
+        enum:
+          - us-east-1
+          - us-west-2
+    repoName:
+      name: repoName
+      in: path
+      description: Repo Name
+      required: true
+      schema:
+        type: string
+        minLength: 2
+        maxLength: 50
+    imageTag:
+      name: imageTag
+      in: path
+      description: Image Tag
+      required: true
+      schema:
+        type: string
+        minLength: 2
+        maxLength: 50        
+  schemas:
+    RepoResponse:
+      type: array
+      minItems: 0
+      maxItems: 100
+      items:
+        $ref: "#/components/schemas/Repo"  
+    Repo:
+      type: object
+      properties: 
+        repoName: 
+          type: string
+          minLength: 2
+          maxLength: 50
+          example: k8s-self-service
+        repoInfo: 
+          $ref: "#/components/schemas/RepoInfo"
+    RepoInfo:
+      type: object
+      properties:
+        region:
+          type: string
+          minLength: 7
+          maxLength: 14
+          enum:
+            - us-east-1
+            - us-west-2
+        repoUri:
+          type: string
+          minLength: 2
+          maxLength: 50
+          example: 123456789012.dkr.ecr.us-east-1.amazonaws.com/k8s-self-service
+        artifactTypes:
+          type: string
+          enum:
+            - image
+            - artifact
+            - helm chart
+    ImageResponse:
+      type: array
+      minItems: 0
+      maxItems: 100
+      items:
+        $ref: "#/components/schemas/Image"
+    Image:
+      type: object
+      properties:
+        imageTags:
+          type: array
+          minItems: 0
+          maxItems: 100
+          items:
+            type: string
+            minLength: 2
+            maxLength: 50
+            example: latest
+        imageDigest:
+          type: string
+          minLength: 64
+          maxLength: 64
+          example: sha256:1234567890123456789012345678901234567890123456789012345678901234
+        imagePushedAt:
+          type: string
+          format: date-time
+          example: 2024-01-01T00:00:00Z
+        imageManifestMediaType:
+          type: string
+          minLength: 2
+          maxLength: 50
+          example: application/vnd.docker.distribution.manifest.v2+json
+        imageArtifactMediaType:
+          type: string
+          minLength: 2
+          maxLength: 50
+          example: application/vnd.docker.container.image.v1+json
+        imageArtifactSize:
+          type: integer
+          format: int64
+          example: 1234567890
+        imagePullCount:
+          type: integer
+          format: int64
+          example: 1234567890
+        
